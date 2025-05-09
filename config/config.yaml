@@ -1,0 +1,18 @@
+app:
+  name: "restapp"
+
+server:
+  port: 8000
+
+database:
+  username: Golang
+  password: dev
+  port: 3306
+  host: localhost
+  dbname: restapp
+  sslmode: disable
+  parsetime: true
+
+jwt:
+  secret: secret_word
+  expiration: 604800
