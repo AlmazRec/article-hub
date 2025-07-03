@@ -15,9 +15,11 @@ const (
 	ErrBadRequest            = "bad request"
 	ErrConvertingExpTime     = "error converting expiration time: %v"
 	ErrComparingPasswords    = "error comparing passwords: %v"
+	ErrCreatingUser          = "error creating user: %v"
+	ErrGeneratingToken       = "error generating token: %v"
 
 	// Article messages
-	ErrFetchArticles      = "Failed to fetch articles: %s"
+	ErrFetchArticles      = "failed to fetch articles: %v"
 	ErrArticleNotFound    = "article not found"
 	ErrInvalidArticleData = "invalid article data"
 	ErrInvalidArticleID   = "invalid article ID"
@@ -43,8 +45,10 @@ const (
 	ErrDatabaseOperation  = "database operation failed"
 
 	// Comment messages
-	MsgCommentCreated = "comment successfully created"
-	MsgCommentUpdated = "comment successfully updated"
+	MsgCommentCreated  = "comment successfully created"
+	MsgCommentUpdated  = "comment successfully updated"
+	ErrGettingComments = "error to getting comments: %v"
+	ErrCreatingComment = "error creating comment: %v"
 
 	// User messages
 	ErrGettingUser = "error getting user: %v"
