@@ -2,14 +2,16 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"github.com/jmoiron/sqlx"
+	"restapp/internal/messages"
 	"restapp/internal/models"
 	"time"
 )
 
 type CommentRepositoryInterface interface {
 	CreateComment(ctx context.Context, comment *models.Comment, articleId int) error
-	GetAllComments(ctx context.Context, articleId int) (*[]models.Comment, error)
+	GetAllComments(ctx context.Context, articleId int) ([]models.Comment, error)
 }
 
 type CommentRepository struct {
@@ -17,28 +19,47 @@ type CommentRepository struct {
 }
 
 func NewCommentRepository(db *sqlx.DB) *CommentRepository {
-	return &CommentRepository{
-		db: db,
-	}
+	return &CommentRepository{db: db}
 }
 
-func (c *CommentRepository) CreateComment(ctx context.Context, comment *models.Comment, articleId int) error {
+func (r *CommentRepository) CreateComment(ctx context.Context, comment *models.Comment, articleId int) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	query := `INSERT INTO comments (article_id, user_id, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`
-	_, err := c.db.ExecContext(ctx, query, articleId, comment.UserId, comment.Content, comment.CreatedAt, comment.UpdatedAt)
+	_, err := r.db.ExecContext(
+		ctx,
+		`INSERT INTO comments (article_id, user_id, content, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?)`,
+		articleId,
+		comment.UserId,
+		comment.Content,
+		comment.CreatedAt,
+		comment.UpdatedAt,
+	)
 	if err != nil {
-		return err
+		return fmt.Errorf(messages.ErrCreatingComment, err)
 	}
+
 	return nil
 }
 
-func (c *CommentRepository) GetAllComments(ctx context.Context, articleId int) (*[]models.Comment, error) {
+func (r *CommentRepository) GetAllComments(ctx context.Context, articleId int) ([]models.Comment, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	var comments []models.Comment
-	err := c.db.SelectContext(ctx, &comments, "SELECT id, article_id, user_id, content, created_at, updated_at FROM comments WHERE article_id = ?", articleId)
+
+	err := r.db.SelectContext(
+		ctx,
+		&comments,
+		`SELECT id, article_id, user_id, content, created_at, updated_at
+		FROM comments
+		WHERE article_id = ?`,
+		articleId,
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(messages.ErrGettingComments, err)
 	}
-	return &comments, nil
+
+	return comments, nil
 }

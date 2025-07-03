@@ -31,12 +31,16 @@ func (a *App) Run() {
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Format: "${time_rfc3339} ${method} ${uri} ${status} ${latency_human}\n",
 	}))
+
 	e.Use(middleware.Recover())
-	e.Use(echoprometheus.NewMiddleware("restapp"))
+	e.Use(echoprometheus.NewMiddleware("article_hub"))
 	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(10))))
 
 	cfg := config.MustLoad(a.cfgPath)
-	database.InitDB(cfg)
+	err := database.InitDB(cfg)
+	if err != nil {
+		panic(err)
+	}
 	db := database.GetDB()
 
 	articleRepo := repositories.NewArticleRepository(db)
@@ -70,5 +74,8 @@ func (a *App) Run() {
 	articles.POST("/:id/comments", commentHandler.CreateComment)
 
 	log.Println("Server start")
-	e.Start(":" + cfg.Server.Port)
+	err = e.Start(":" + cfg.Server.Port)
+	if err != nil {
+		panic(err)
+	}
 }

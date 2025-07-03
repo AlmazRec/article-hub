@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"restapp/internal/messages"
 	"restapp/internal/models"
 	"time"
 
@@ -27,31 +28,38 @@ func NewArticleRepository(db *sqlx.DB) *ArticleRepository {
 }
 
 func (r *ArticleRepository) GetAllArticles(ctx context.Context) (*[]models.Article, error) {
-	var articles []models.Article
-	err := r.db.Select(&articles, "SELECT id, title, content, created_at, updated_at FROM articles")
-	if err != nil {
-		return nil, fmt.Errorf("could not fetch articles: %w", err)
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	var articles []models.Article
+	err := r.db.SelectContext(
+		ctx,
+		&articles,
+		`SELECT id, title, content, created_at, updated_at
+			FROM articles`,
+	)
+	if err != nil {
+		return nil, fmt.Errorf(messages.ErrFetchArticles, err)
+	}
 	return &articles, nil
 }
 
 func (r *ArticleRepository) GetById(ctx context.Context, id int) (*models.Article, error) {
-	var article models.Article
-	err := r.db.Get(&article, "SELECT id, title, content, created_at, updated_at FROM articles WHERE id = ?", id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("article with id %d not found", id)
-		}
-		return nil, fmt.Errorf("could not fetch article: %w", err)
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	var article models.Article
+	err := r.db.GetContext(ctx,
+		&article,
+		`SELECT id, title, content, created_at, updated_at FROM articles WHERE id = ?`,
+		id,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf(messages.ErrArticleNotFound)
+		}
+		return nil, fmt.Errorf(messages.ErrFetchArticles, err)
+	}
 	return &article, nil
 }
 
@@ -59,11 +67,18 @@ func (r *ArticleRepository) StoreArticle(ctx context.Context, article *models.Ar
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	_, err := r.db.Exec("INSERT INTO articles (user_id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)", userId, article.Title, article.Content, article.CreatedAt, article.UpdatedAt)
+	_, err := r.db.ExecContext(
+		ctx,
+		`INSERT INTO articles (user_id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
+		userId,
+		article.Title,
+		article.Content,
+		article.CreatedAt,
+		article.UpdatedAt,
+	)
 	if err != nil {
-		return fmt.Errorf("could not store article: %w", err)
+		return fmt.Errorf(messages.ErrInvalidArticleData)
 	}
-
 	return nil
 }
 
@@ -71,28 +86,49 @@ func (r *ArticleRepository) UpdateArticle(ctx context.Context, id int, article *
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	_, err := r.db.Exec("UPDATE articles SET title = ?, content = ?, updated_at = ? WHERE id = ?", article.Title, article.Content, article.UpdatedAt, id)
+	result, err := r.db.ExecContext(
+		ctx,
+		`UPDATE articles
+		SET title = ?, content = ?, updated_at = ?
+		WHERE id = ?`,
+		article.Title,
+		article.Content,
+		article.UpdatedAt,
+		id,
+	)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("article with id %d not found", id)
-		}
-		return fmt.Errorf("could not update article: %w", err)
+		return fmt.Errorf(messages.ErrFetchArticles, err)
 	}
 
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf(messages.ErrDatabaseOperation)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf(messages.ErrArticleNotFound)
+	}
 	return nil
 }
 
 func (r *ArticleRepository) DeleteArticle(ctx context.Context, id int) error {
-	_, err := r.db.Exec("DELETE FROM articles WHERE id =?", id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("article with id %d not found", id)
-		}
-		return fmt.Errorf("could not delete article: %w", err)
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	result, err := r.db.ExecContext(ctx,
+		`DELETE FROM articles
+       	WHERE id = ?`,
+		id,
+	)
+	if err != nil {
+		return fmt.Errorf(messages.ErrFetchArticles, err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf(messages.ErrDatabaseOperation)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf(messages.ErrArticleNotFound)
+	}
 	return nil
 }

@@ -47,5 +47,5 @@ func (s *CommentService) GetAllComments(ctx context.Context, articleId int) (*[]
 		return nil, err
 	}
 
-	return comments, nil
+	return &comments, nil
 }

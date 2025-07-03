@@ -27,6 +27,11 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
+type UserResponse struct {
+	User  interface{}
+	Token string
+}
+
 func (r *RegisterRequest) Validate() error {
 	validate := validator.New()
 

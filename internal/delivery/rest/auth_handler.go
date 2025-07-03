@@ -2,9 +2,9 @@ package rest
 
 import (
 	"net/http"
-	"restapp/internal/errors"
 	"restapp/internal/messages"
 	"restapp/internal/models"
+	"restapp/internal/response"
 	"restapp/internal/services"
 
 	"github.com/labstack/echo/v4"
@@ -14,8 +14,8 @@ type AuthHandler struct {
 	AuthService services.AuthServiceInterface
 }
 
-func NewAuthHandler(AuthService services.AuthServiceInterface) *AuthHandler {
-	return &AuthHandler{AuthService: AuthService}
+func NewAuthHandler(authService services.AuthServiceInterface) *AuthHandler {
+	return &AuthHandler{AuthService: authService}
 }
 
 func (h *AuthHandler) Register(c echo.Context) error {
@@ -23,22 +23,34 @@ func (h *AuthHandler) Register(c echo.Context) error {
 	var req models.RegisterRequest
 
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrBadRequest,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrBadRequest,
+			Error:   err.Error(),
+		})
 	}
 
-	if err := h.AuthService.Register(ctx, &req); err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrBadRequest,
-			err.Error(),
-		))
+	if err := req.Validate(); err != nil {
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrValidationFailed,
+			Error:   err.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusCreated, messages.MsgRegistrationSuccess)
+	userData, err := h.AuthService.Register(ctx, &req)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrBadRequest,
+			Error:   err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusCreated, response.SuccessResponse{
+		Data:    userData,
+		Message: messages.MsgRegistrationSuccess,
+	})
 }
 
 func (h *AuthHandler) Login(c echo.Context) error {
@@ -46,21 +58,33 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	var req models.LoginRequest
 
 	if err := c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrBadRequest,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrBadRequest,
+			Error:   err.Error(),
+		})
+	}
+
+	if err := req.Validate(); err != nil {
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrValidationFailed,
+			Error:   err.Error(),
+		})
 	}
 
 	token, err := h.AuthService.Login(ctx, &req)
 	if err != nil {
-		return c.JSON(http.StatusUnauthorized, errors.NewErrorResponse(
-			http.StatusUnauthorized,
-			messages.ErrInvalidCredentials,
-			err.Error(),
-		))
+		return c.JSON(http.StatusUnauthorized, response.ErrorResponse{
+			Code:    http.StatusUnauthorized,
+			Message: messages.ErrInvalidCredentials,
+			Error:   err.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"token": token})
+	return c.JSON(http.StatusOK, response.SuccessResponse{
+		Data: map[string]string{
+			"token": token,
+		},
+	})
 }

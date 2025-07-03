@@ -15,7 +15,7 @@ import (
 )
 
 type AuthServiceInterface interface {
-	Register(ctx context.Context, req *models.RegisterRequest) error
+	Register(ctx context.Context, req *models.RegisterRequest) (*models.UserResponse, error)
 	Login(ctx context.Context, req *models.LoginRequest) (string, error)
 	ValidateToken(tokenString string) (*models.Claims, error)
 	FormatToken(tokenString string) string
@@ -30,17 +30,13 @@ func NewAuthService(r repositories.AuthRepositoryInterface, cfg *config.Config) 
 	return &AuthService{r: r, cfg: cfg}
 }
 
-func (s *AuthService) Register(ctx context.Context, user *models.RegisterRequest) error {
-	if err := user.Validate(); err != nil {
-		return fmt.Errorf(messages.ErrValidationFailed, err)
-	}
-
+func (s *AuthService) Register(ctx context.Context, user *models.RegisterRequest) (*models.UserResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf(messages.ErrHashingPassword, err)
+		return nil, fmt.Errorf(messages.ErrHashingPassword, err)
 	}
 
 	userModel := models.User{
@@ -52,14 +48,23 @@ func (s *AuthService) Register(ctx context.Context, user *models.RegisterRequest
 		UpdatedAt: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	return s.r.Register(ctx, &userModel)
+	registeredUser, err := s.r.Register(ctx, &userModel)
+	if err != nil {
+		return nil, fmt.Errorf(messages.ErrCreatingUser, err)
+	}
+
+	token, err := s.generateToken(registeredUser.Id)
+	if err != nil {
+		return nil, fmt.Errorf(messages.ErrGeneratingToken, err)
+	}
+
+	return &models.UserResponse{
+		User:  registeredUser,
+		Token: token,
+	}, nil
 }
 
 func (s *AuthService) Login(ctx context.Context, user *models.LoginRequest) (string, error) {
-	if err := user.Validate(); err != nil {
-		return "", fmt.Errorf(messages.ErrValidationFailed, err)
-	}
-
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 

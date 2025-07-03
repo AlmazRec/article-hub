@@ -3,9 +3,9 @@ package rest
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"restapp/internal/errors"
 	"restapp/internal/messages"
 	"restapp/internal/models"
+	"restapp/internal/response"
 	"restapp/internal/services"
 	"strconv"
 )
@@ -28,48 +28,50 @@ func (h *CommentHandler) CreateComment(c echo.Context) error {
 	articleId := c.Param("id")
 	intArticleId, err := strconv.Atoi(articleId)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrBadRequest,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrBadRequest,
+			Error:   err.Error(),
+		})
 	}
 
 	var req models.CommentRequest
 	if err = c.Bind(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrBadRequest,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrBadRequest,
+			Error:   err.Error(),
+		})
 	}
 
 	if err = req.Validate(); err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrValidationFailed,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrValidationFailed,
+			Error:   err.Error(),
+		})
 	}
 
 	claims, err := h.AuthService.ValidateToken(h.AuthService.FormatToken(c.Request().Header.Get("Authorization")))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrInvalidToken,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidToken,
+			Error:   err.Error(),
+		})
 	}
 
 	if _, err := h.CommentService.CreateComment(ctx, &req, intArticleId, claims.UserId); err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.NewErrorResponse(
-			http.StatusInternalServerError,
-			messages.ErrDatabaseOperation,
-			err.Error(),
-		))
+		return c.JSON(http.StatusInternalServerError, response.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: messages.ErrDatabaseOperation,
+			Error:   err.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusCreated, messages.MsgCommentCreated)
+	return c.JSON(http.StatusCreated, response.SuccessResponse{
+		Message: messages.MsgCommentCreated,
+	})
 }
 
 func (h *CommentHandler) GetAllComments(c echo.Context) error {
@@ -78,21 +80,23 @@ func (h *CommentHandler) GetAllComments(c echo.Context) error {
 	articleId := c.Param("id")
 	intArticleId, err := strconv.Atoi(articleId)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrBadRequest,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrBadRequest,
+			Error:   err.Error(),
+		})
 	}
 
 	comments, err := h.CommentService.GetAllComments(ctx, intArticleId)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.NewErrorResponse(
-			http.StatusInternalServerError,
-			messages.ErrDatabaseOperation,
-			err.Error(),
-		))
+		return c.JSON(http.StatusInternalServerError, response.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: messages.ErrDatabaseOperation,
+			Error:   err.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusOK, comments)
+	return c.JSON(http.StatusOK, response.SuccessResponse{
+		Data: comments,
+	})
 }

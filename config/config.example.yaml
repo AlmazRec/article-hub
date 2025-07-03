@@ -5,11 +5,11 @@ server:
   port: 8000
 
 database:
-  username: golang
-  password: dev
+  username: root
+  password: root
   port: 3306
   host: localhost
-  dbname: golang
+  dbname: database_name
   sslmode: disable
   parsetime: true
 

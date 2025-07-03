@@ -2,9 +2,9 @@ package rest
 
 import (
 	"net/http"
-	"restapp/internal/errors"
 	"restapp/internal/messages"
 	"restapp/internal/models"
+	"restapp/internal/response"
 	"restapp/internal/services"
 	"strconv"
 
@@ -26,13 +26,16 @@ func (h *ArticleHandler) GetAllArticles(c echo.Context) error {
 
 	articles, err := (h.ArticleService).GetAllArticles(ctx)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.NewErrorResponse(
-			http.StatusInternalServerError,
-			messages.ErrInternalServer,
-			err.Error(),
-		))
+		return c.JSON(http.StatusInternalServerError, response.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: messages.ErrInternalServer,
+			Error:   err.Error(),
+		})
 	}
-	return c.JSON(http.StatusOK, articles)
+	return c.JSON(http.StatusOK, response.SuccessResponse{
+		Data:    articles,
+		Message: "",
+	})
 }
 
 func (h *ArticleHandler) GetById(c echo.Context) error {
@@ -40,33 +43,36 @@ func (h *ArticleHandler) GetById(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrInvalidArticleID,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidArticleID,
+			Error:   err.Error(),
+		})
 	}
 
 	article, err := h.ArticleService.GetById(ctx, id)
 	if err != nil {
-		return c.JSON(http.StatusNotFound, errors.NewErrorResponse(
-			http.StatusNotFound,
-			messages.ErrArticleNotFound,
-			err.Error(),
-		))
+		return c.JSON(http.StatusNotFound, response.ErrorResponse{
+			Code:    http.StatusNotFound,
+			Message: messages.ErrArticleNotFound,
+			Error:   err.Error(),
+		})
 	}
 
 	comments, err := h.CommentService.GetAllComments(ctx, id)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.NewErrorResponse(
-			http.StatusInternalServerError,
-			messages.ErrDatabaseOperation,
-			err.Error(),
-		))
+		return c.JSON(http.StatusInternalServerError, response.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: messages.ErrDatabaseOperation,
+			Error:   err.Error(),
+		})
 	}
 
 	article.Comments = *comments
-	return c.JSON(http.StatusOK, article)
+	return c.JSON(http.StatusOK, response.SuccessResponse{
+		Data:    article,
+		Message: "",
+	})
 }
 
 func (h *ArticleHandler) StoreArticle(c echo.Context) error {
@@ -76,38 +82,40 @@ func (h *ArticleHandler) StoreArticle(c echo.Context) error {
 
 	claims, err := h.AuthService.ValidateToken(h.AuthService.FormatToken(c.Request().Header.Get("Authorization")))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrInvalidToken,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidToken,
+			Error:   err.Error(),
+		})
 	}
 
 	if err := c.Bind(&articleRequest); err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrInvalidArticleData,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidArticleData,
+			Error:   err.Error(),
+		})
 	}
 
 	if err := articleRequest.Validate(); err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrValidationFailed,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrValidationFailed,
+			Error:   err.Error(),
+		})
 	}
 
 	if err := h.ArticleService.CreateArticle(ctx, &articleRequest, claims.UserId); err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.NewErrorResponse(
-			http.StatusInternalServerError,
-			messages.ErrDatabaseOperation,
-			err.Error(),
-		))
+		return c.JSON(http.StatusInternalServerError, response.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: messages.ErrDatabaseOperation,
+			Error:   err.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusCreated, map[string]string{"message": messages.MsgArticleCreated})
+	return c.JSON(http.StatusCreated, response.SuccessResponse{
+		Message: messages.MsgArticleCreated,
+	})
 }
 
 func (h *ArticleHandler) UpdateArticle(c echo.Context) error {
@@ -115,39 +123,41 @@ func (h *ArticleHandler) UpdateArticle(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrInvalidArticleID,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidArticleID,
+			Error:   err.Error(),
+		})
 	}
 
 	var articleRequest models.ArticleRequest
 	if err := c.Bind(&articleRequest); err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrInvalidArticleData,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidArticleData,
+			Error:   err.Error(),
+		})
 	}
 
 	if err := articleRequest.Validate(); err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrValidationFailed,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrValidationFailed,
+			Error:   err.Error(),
+		})
 	}
 
 	if err := h.ArticleService.UpdateArticle(ctx, id, &articleRequest); err != nil {
-		return c.JSON(http.StatusNotFound, errors.NewErrorResponse(
-			http.StatusNotFound,
-			messages.ErrArticleNotFound,
-			err.Error(),
-		))
+		return c.JSON(http.StatusNotFound, response.ErrorResponse{
+			Code:    http.StatusNotFound,
+			Message: messages.ErrArticleNotFound,
+			Error:   err.Error(),
+		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": messages.MsgArticleUpdated})
+	return c.JSON(http.StatusOK, response.SuccessResponse{
+		Message: messages.MsgArticleUpdated,
+	})
 }
 
 func (h *ArticleHandler) DeleteArticle(c echo.Context) error {
@@ -155,19 +165,19 @@ func (h *ArticleHandler) DeleteArticle(c echo.Context) error {
 
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, errors.NewErrorResponse(
-			http.StatusBadRequest,
-			messages.ErrInvalidArticleID,
-			err.Error(),
-		))
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidArticleID,
+			Error:   err.Error(),
+		})
 	}
 
 	if err := h.ArticleService.DeleteArticle(ctx, id); err != nil {
-		return c.JSON(http.StatusInternalServerError, errors.NewErrorResponse(
-			http.StatusInternalServerError,
-			messages.ErrDatabaseOperation,
-			err.Error(),
-		))
+		return c.JSON(http.StatusInternalServerError, response.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: messages.ErrDatabaseOperation,
+			Error:   err.Error(),
+		})
 	}
 
 	return c.NoContent(http.StatusNoContent)
