@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"errors"
 	"net/http"
 	"restapp/internal/messages"
 	"restapp/internal/models"
@@ -181,4 +182,80 @@ func (h *ArticleHandler) DeleteArticle(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (h *ArticleHandler) LikeArticle(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidArticleID,
+			Error:   err.Error(),
+		})
+	}
+
+	claims, err := h.AuthService.ValidateToken(h.AuthService.FormatToken(c.Request().Header.Get("Authorization")))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidToken,
+			Error:   err.Error(),
+		})
+	}
+
+	if err := h.ArticleService.LikeArticle(ctx, id, claims.UserId); err != nil {
+		if errors.Is(err, messages.ErrLikeExists) {
+			return c.JSON(http.StatusConflict, response.ErrorResponse{
+				Code:    http.StatusConflict,
+				Message: messages.ErrLikeExists,
+				Error:   err.Error(),
+			})
+		}
+
+		return c.JSON(http.StatusInternalServerError, response.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: messages.ErrDatabaseOperation,
+			Error:   err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, response.SuccessResponse{
+		Message: messages.MsgArticleLiked,
+	})
+}
+
+func (h *ArticleHandler) UnlikeArticle(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidArticleID,
+			Error:   err.Error(),
+		})
+	}
+
+	claims, err := h.AuthService.ValidateToken(h.AuthService.FormatToken(c.Request().Header.Get("Authorization")))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, response.ErrorResponse{
+			Code:    http.StatusBadRequest,
+			Message: messages.ErrInvalidToken,
+			Error:   err.Error(),
+		})
+	}
+
+	if err := h.ArticleService.UnlikeArticle(ctx, id, claims.UserId); err != nil {
+		return c.JSON(http.StatusInternalServerError, response.ErrorResponse{
+			Code:    http.StatusInternalServerError,
+			Message: messages.ErrDatabaseOperation,
+			Error:   err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, response.SuccessResponse{
+		Message: messages.MsgArticleUnliked,
+	})
 }

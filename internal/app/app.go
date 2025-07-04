@@ -70,6 +70,8 @@ func (a *App) Run() {
 	articles.POST("", articleHandler.StoreArticle)
 	articles.PUT("/:id", articleHandler.UpdateArticle)
 	articles.DELETE("/:id", articleHandler.DeleteArticle)
+	articles.GET("/:id/like", articleHandler.LikeArticle)
+	articles.GET("/:id/unlike", articleHandler.UnlikeArticle)
 
 	articles.POST("/:id/comments", commentHandler.CreateComment)
 

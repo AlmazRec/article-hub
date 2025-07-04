@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"restapp/config"
 	"restapp/internal/messages"
 	"restapp/internal/models"
@@ -36,7 +35,7 @@ func (s *AuthService) Register(ctx context.Context, user *models.RegisterRequest
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, fmt.Errorf(messages.ErrHashingPassword, err)
+		return nil, messages.ErrHashingPassword
 	}
 
 	userModel := models.User{
@@ -50,12 +49,12 @@ func (s *AuthService) Register(ctx context.Context, user *models.RegisterRequest
 
 	registeredUser, err := s.r.Register(ctx, &userModel)
 	if err != nil {
-		return nil, fmt.Errorf(messages.ErrCreatingUser, err)
+		return nil, messages.ErrCreatingUser
 	}
 
 	token, err := s.generateToken(registeredUser.Id)
 	if err != nil {
-		return nil, fmt.Errorf(messages.ErrGeneratingToken, err)
+		return nil, messages.ErrGeneratingToken
 	}
 
 	return &models.UserResponse{
@@ -70,12 +69,12 @@ func (s *AuthService) Login(ctx context.Context, user *models.LoginRequest) (str
 
 	userModel, err := s.r.GetUserByEmail(ctx, user.Email)
 	if err != nil {
-		return "", fmt.Errorf(messages.ErrGettingUser, err)
+		return "", messages.ErrGettingUser
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(userModel.Password), []byte(user.Password))
 	if err != nil {
-		return "", fmt.Errorf(messages.ErrComparingPasswords, err)
+		return "", messages.ErrComparingPasswords
 	}
 
 	return s.generateToken(userModel.Id)
@@ -84,7 +83,7 @@ func (s *AuthService) Login(ctx context.Context, user *models.LoginRequest) (str
 func (s *AuthService) generateToken(userId int) (string, error) {
 	expirationTime, err := strconv.Atoi(s.cfg.JWT.Expiration)
 	if err != nil {
-		return "", fmt.Errorf(messages.ErrConvertingExpTime, err)
+		return "", messages.ErrConvertingExpTime
 	}
 
 	claims := &models.Claims{
@@ -99,7 +98,7 @@ func (s *AuthService) generateToken(userId int) (string, error) {
 
 	tokenString, err := token.SignedString([]byte(s.cfg.JWT.Secret))
 	if err != nil {
-		return "", fmt.Errorf(messages.ErrSigningToken, err)
+		return "", messages.ErrSigningToken
 	}
 
 	return tokenString, nil
@@ -110,17 +109,17 @@ func (s *AuthService) ValidateToken(tokenString string) (*models.Claims, error) 
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf(messages.ErrInvalidSigningMethod)
+			return nil, messages.ErrInvalidSigningMethod
 		}
 		return []byte(s.cfg.JWT.Secret), nil
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf(messages.ErrParsingToken, err)
+		return nil, messages.ErrParsingToken
 	}
 
 	if !token.Valid {
-		return nil, fmt.Errorf(messages.ErrInvalidToken)
+		return nil, messages.ErrInvalidToken
 	}
 
 	return claims, nil

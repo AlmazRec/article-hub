@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"restapp/internal/messages"
 	"restapp/internal/models"
 	"restapp/internal/repositories"
@@ -15,6 +14,8 @@ type ArticleServiceInterface interface {
 	CreateArticle(ctx context.Context, article *models.ArticleRequest, userId int) error
 	UpdateArticle(ctx context.Context, id int, article *models.ArticleRequest) error
 	DeleteArticle(ctx context.Context, id int) error
+	LikeArticle(ctx context.Context, articleId int, userId int) error
+	UnlikeArticle(ctx context.Context, articleId int, userId int) error
 }
 
 type ArticleService struct {
@@ -31,7 +32,7 @@ func (s *ArticleService) GetAllArticles(ctx context.Context) (*[]models.Article,
 
 	articles, err := s.r.GetAllArticles(ctx)
 	if err != nil {
-		return nil, fmt.Errorf(messages.ErrGettingArticles, err)
+		return nil, messages.ErrGettingArticles
 	}
 
 	return articles, nil
@@ -43,7 +44,7 @@ func (s *ArticleService) GetById(ctx context.Context, id int) (*models.Article, 
 
 	article, err := s.r.GetById(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf(messages.ErrGettingArticles, err)
+		return nil, messages.ErrGettingArticles
 	}
 
 	return article, nil
@@ -82,4 +83,18 @@ func (s *ArticleService) DeleteArticle(ctx context.Context, id int) error {
 	defer cancel()
 
 	return s.r.DeleteArticle(ctx, id)
+}
+
+func (s *ArticleService) LikeArticle(ctx context.Context, articleId int, userId int) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	return s.r.LikeArticle(ctx, articleId, userId)
+}
+
+func (s *ArticleService) UnlikeArticle(ctx context.Context, articleId int, userId int) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	return s.r.UnlikeArticle(ctx, articleId, userId)
 }

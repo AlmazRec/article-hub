@@ -12,9 +12,10 @@ type Article struct {
 	UserId    int       `json:"user_id" db:"userId"`
 	Title     string    `json:"title" db:"title"`
 	Content   string    `json:"content" db:"content"`
+	Likes     int       `json:"likes" db:"likes"`
+	Comments  []Comment `json:"comments"`
 	CreatedAt string    `json:"created_at" db:"created_at"`
 	UpdatedAt string    `json:"updated_at" db:"updated_at"`
-	Comments  []Comment `json:"comments"`
 }
 
 type ArticleRequest struct {

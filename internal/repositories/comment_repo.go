@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"context"
-	"fmt"
 	"github.com/jmoiron/sqlx"
 	"restapp/internal/messages"
 	"restapp/internal/models"
@@ -37,7 +36,7 @@ func (r *CommentRepository) CreateComment(ctx context.Context, comment *models.C
 		comment.UpdatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf(messages.ErrCreatingComment, err)
+		return messages.ErrCreatingComment
 	}
 
 	return nil
@@ -58,7 +57,7 @@ func (r *CommentRepository) GetAllComments(ctx context.Context, articleId int) (
 		articleId,
 	)
 	if err != nil {
-		return nil, fmt.Errorf(messages.ErrGettingComments, err)
+		return nil, messages.ErrGettingComments
 	}
 
 	return comments, nil
