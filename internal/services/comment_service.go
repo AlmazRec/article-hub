@@ -2,6 +2,8 @@ package services
 
 import (
 	"context"
+	"fmt"
+	"restapp/internal/messages"
 	"restapp/internal/models"
 	"restapp/internal/repositories"
 	"time"
@@ -36,7 +38,7 @@ func (s *CommentService) CreateComment(ctx context.Context, comment *models.Comm
 
 	err := s.CommentRepository.CreateComment(ctx, &commentModel, articleId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", messages.ErrCreatingComment, err)
 	}
 	return &commentModel, nil
 }
@@ -44,7 +46,7 @@ func (s *CommentService) CreateComment(ctx context.Context, comment *models.Comm
 func (s *CommentService) GetAllComments(ctx context.Context, articleId int) (*[]models.Comment, error) {
 	comments, err := s.CommentRepository.GetAllComments(ctx, articleId)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %v", messages.ErrGettingComments, err)
 	}
 
 	return &comments, nil

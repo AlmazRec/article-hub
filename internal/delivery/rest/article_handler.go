@@ -209,7 +209,7 @@ func (h *ArticleHandler) LikeArticle(c echo.Context) error {
 		if errors.Is(err, messages.ErrLikeExists) {
 			return c.JSON(http.StatusConflict, response.ErrorResponse{
 				Code:    http.StatusConflict,
-				Message: messages.ErrLikeExists,
+				Message: messages.ErrLikeExists.Error(),
 				Error:   err.Error(),
 			})
 		}

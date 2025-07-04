@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"restapp/internal/messages"
 	"restapp/internal/models"
 	"restapp/internal/repositories"
@@ -32,7 +33,7 @@ func (s *ArticleService) GetAllArticles(ctx context.Context) (*[]models.Article,
 
 	articles, err := s.r.GetAllArticles(ctx)
 	if err != nil {
-		return nil, messages.ErrGettingArticles
+		return nil, fmt.Errorf("%w: %v", messages.ErrGettingArticles, err)
 	}
 
 	return articles, nil
@@ -44,7 +45,7 @@ func (s *ArticleService) GetById(ctx context.Context, id int) (*models.Article, 
 
 	article, err := s.r.GetById(ctx, id)
 	if err != nil {
-		return nil, messages.ErrGettingArticles
+		return nil, fmt.Errorf("%w: %v", messages.ErrGettingArticles, err)
 	}
 
 	return article, nil

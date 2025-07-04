@@ -3,8 +3,10 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"restapp/internal/messages"
 	"restapp/internal/models"
 )
 
@@ -22,8 +24,10 @@ func NewAuthRepository(db *sqlx.DB) *AuthRepository {
 }
 
 func (r *AuthRepository) Register(ctx context.Context, user *models.User) (*models.User, error) {
-	result, err := r.db.ExecContext(ctx,
-		"INSERT INTO users (username, password, email, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+	registeredUser, err := r.db.ExecContext(
+		ctx,
+		`INSERT INTO users (username, password, email, role, created_at, updated_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
 		user.Username,
 		user.Password,
 		user.Email,
@@ -32,12 +36,12 @@ func (r *AuthRepository) Register(ctx context.Context, user *models.User) (*mode
 		user.UpdatedAt,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to register user, error: %s", err)
+		return nil, fmt.Errorf("%w: %v", messages.ErrCreatingUser, err)
 	}
 
-	id, err := result.LastInsertId()
+	id, err := registeredUser.LastInsertId()
 	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve inserted user ID: %w", err)
+		return nil, fmt.Errorf("%w: %v", messages.ErrCreatingUser, err)
 	}
 
 	user.Id = int(id)
@@ -50,14 +54,15 @@ func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*mod
 
 	err := r.db.GetContext(ctx,
 		&user,
-		"SELECT id, username, password, email, role, created_at, updated_at FROM users WHERE email = ?",
+		`SELECT id, username, password, email, role, created_at, updated_at 
+		 FROM users WHERE email = ?`,
 		email,
 	)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("user with email %s not found", email)
 		}
-		return nil, fmt.Errorf("failed to get user by email, error: %s", err)
+		return nil, fmt.Errorf("%w: %v", messages.ErrGettingUser, err)
 	}
 
 	return &user, nil

@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 	"github.com/jmoiron/sqlx"
 	"restapp/internal/messages"
 	"restapp/internal/models"
@@ -28,7 +29,7 @@ func (r *CommentRepository) CreateComment(ctx context.Context, comment *models.C
 	_, err := r.db.ExecContext(
 		ctx,
 		`INSERT INTO comments (article_id, user_id, content, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?)`,
+		 VALUES (?, ?, ?, ?, ?)`,
 		articleId,
 		comment.UserId,
 		comment.Content,
@@ -36,7 +37,7 @@ func (r *CommentRepository) CreateComment(ctx context.Context, comment *models.C
 		comment.UpdatedAt,
 	)
 	if err != nil {
-		return messages.ErrCreatingComment
+		return fmt.Errorf("%w: %v", messages.ErrCreatingComment, err)
 	}
 
 	return nil
@@ -52,12 +53,12 @@ func (r *CommentRepository) GetAllComments(ctx context.Context, articleId int) (
 		ctx,
 		&comments,
 		`SELECT id, article_id, user_id, content, created_at, updated_at
-		FROM comments
-		WHERE article_id = ?`,
+		 FROM comments
+		 WHERE article_id = ?`,
 		articleId,
 	)
 	if err != nil {
-		return nil, messages.ErrGettingComments
+		return nil, fmt.Errorf("%w: %v", messages.ErrGettingComments, err)
 	}
 
 	return comments, nil

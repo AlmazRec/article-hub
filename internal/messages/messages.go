@@ -1,32 +1,34 @@
 package messages
 
-import "fmt"
+import (
+	"errors"
+)
 
 var (
 	// Auth messages
-	ErrInvalidCredentials    = fmt.Errorf("invalid email or password")
-	ErrEmailAlreadyExists    = fmt.Errorf("email already exists")
-	ErrUsernameAlreadyExists = fmt.Errorf("username already exists")
-	ErrInvalidToken          = fmt.Errorf("invalid token")
-	ErrMissingToken          = fmt.Errorf("missing authorization token")
-	ErrParsingToken          = fmt.Errorf("error parsing token: %v")
-	ErrTokenExpired          = fmt.Errorf("token expired")
-	ErrInvalidSigningMethod  = fmt.Errorf("invalid signing method")
-	ErrSigningToken          = fmt.Errorf("error signing token: %v")
-	ErrHashingPassword       = fmt.Errorf("error hashing password: %v")
-	ErrBadRequest            = fmt.Errorf("bad request")
-	ErrConvertingExpTime     = fmt.Errorf("error converting expiration time: %v")
-	ErrComparingPasswords    = fmt.Errorf("error comparing passwords: %v")
-	ErrCreatingUser          = fmt.Errorf("error creating user: %v")
-	ErrGeneratingToken       = fmt.Errorf("error generating token: %v")
+	ErrInvalidCredentials    = errors.New("invalid email or password")
+	ErrEmailAlreadyExists    = errors.New("email already exists")
+	ErrUsernameAlreadyExists = errors.New("username already exists")
+	ErrInvalidToken          = errors.New("invalid token")
+	ErrMissingToken          = errors.New("missing authorization token")
+	ErrParsingToken          = errors.New("error parsing token")
+	ErrTokenExpired          = errors.New("token expired")
+	ErrInvalidSigningMethod  = errors.New("invalid signing method")
+	ErrSigningToken          = errors.New("error signing token")
+	ErrHashingPassword       = errors.New("error hashing password")
+	ErrBadRequest            = errors.New("bad request")
+	ErrConvertingExpTime     = errors.New("error converting expiration time")
+	ErrComparingPasswords    = errors.New("error comparing passwords")
+	ErrCreatingUser          = errors.New("error creating user")
+	ErrGeneratingToken       = errors.New("error generating token")
 
 	// Article messages
-	ErrFetchArticles      = fmt.Errorf("failed to fetch articles: %v")
-	ErrArticleNotFound    = fmt.Errorf("article not found")
-	ErrInvalidArticleData = fmt.Errorf("invalid article data")
-	ErrInvalidArticleID   = fmt.Errorf("invalid article ID")
-	ErrGettingArticles    = fmt.Errorf("error getting articles: %v")
-	ErrLikeExists         = fmt.Errorf("like already exists")
+	ErrFetchArticles      = errors.New("failed to fetch articles")
+	ErrArticleNotFound    = errors.New("article not found")
+	ErrInvalidArticleData = errors.New("invalid article data")
+	ErrInvalidArticleID   = errors.New("invalid article ID")
+	ErrGettingArticles    = errors.New("error getting articles")
+	ErrLikeExists         = errors.New("like already exists")
 	MsgArticleCreated     = "article successfully created"
 	MsgArticleUpdated     = "article successfully updated"
 	MsgArticleDeleted     = "article successfully deleted"
@@ -34,7 +36,7 @@ var (
 	MsgArticleUnliked     = "article successfully unliked"
 
 	// Validation messages
-	ErrValidationFailed   = fmt.Errorf("validation failed: %v")
+	ErrValidationFailed   = errors.New("validation failed")
 	ErrFieldRequired      = "field %s is required"
 	ErrFieldMinLength     = "field %s must be at least %d characters"
 	ErrFieldMaxLength     = "field %s must not exceed %d characters"
@@ -45,16 +47,16 @@ var (
 	MsgLoginSuccess        = "login successful"
 
 	// Server errors
-	ErrInternalServer     = fmt.Errorf("internal server error")
-	ErrDatabaseConnection = fmt.Errorf("database connection error")
-	ErrDatabaseOperation  = fmt.Errorf("database operation failed")
+	ErrInternalServer     = errors.New("internal server error")
+	ErrDatabaseConnection = errors.New("database connection error")
+	ErrDatabaseOperation  = errors.New("database operation failed")
 
 	// Comment messages
 	MsgCommentCreated  = "comment successfully created"
 	MsgCommentUpdated  = "comment successfully updated"
-	ErrGettingComments = fmt.Errorf("error to getting comments: %v")
-	ErrCreatingComment = fmt.Errorf("error creating comment: %v")
+	ErrGettingComments = errors.New("error to getting comments")
+	ErrCreatingComment = errors.New("error creating comment")
 
 	// User messages
-	ErrGettingUser = fmt.Errorf("error getting user: %v")
+	ErrGettingUser = errors.New("error getting user")
 )

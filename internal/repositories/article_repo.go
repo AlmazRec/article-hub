@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"restapp/internal/messages"
 	"restapp/internal/models"
 	"time"
@@ -33,19 +34,14 @@ func (r *ArticleRepository) GetAllArticles(ctx context.Context) (*[]models.Artic
 	defer cancel()
 
 	var articles []models.Article
-	err := r.db.SelectContext(
-		ctx,
-		&articles,
-		`SELECT a.id, a.title, a.content, COUNT(l.id) as likes, a.created_at, a.updated_at
-			FROM 
-			    articles a 
-			LEFT JOIN 
-				likes l ON a.id = l.article_id
-			GROUP BY 
-    			a.id, a.title, a.content, a.created_at, a.updated_at;`,
-	)
+	err := r.db.SelectContext(ctx, &articles, `
+		SELECT a.id, a.title, a.content, COUNT(l.id) as likes, a.created_at, a.updated_at
+		FROM articles a
+		LEFT JOIN likes l ON a.id = l.article_id
+		GROUP BY a.id, a.title, a.content, a.created_at, a.updated_at;
+	`)
 	if err != nil {
-		return nil, messages.ErrFetchArticles
+		return nil, fmt.Errorf("%w: %v", messages.ErrFetchArticles, err)
 	}
 	return &articles, nil
 }
@@ -55,16 +51,14 @@ func (r *ArticleRepository) GetById(ctx context.Context, id int) (*models.Articl
 	defer cancel()
 
 	var article models.Article
-	err := r.db.GetContext(ctx,
-		&article,
-		`SELECT id, title, content, created_at, updated_at FROM articles WHERE id = ?`,
-		id,
-	)
+	err := r.db.GetContext(ctx, &article, `
+		SELECT id, title, content, created_at, updated_at FROM articles WHERE id = ?
+	`, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, messages.ErrArticleNotFound
 		}
-		return nil, messages.ErrFetchArticles
+		return nil, fmt.Errorf("%w: %v", messages.ErrFetchArticles, err)
 	}
 	return &article, nil
 }
@@ -73,17 +67,13 @@ func (r *ArticleRepository) StoreArticle(ctx context.Context, article *models.Ar
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	_, err := r.db.ExecContext(
-		ctx,
-		`INSERT INTO articles (user_id, title, content, created_at, updated_at) VALUES (?, ?, ?, ?, ?)`,
-		userId,
-		article.Title,
-		article.Content,
-		article.CreatedAt,
-		article.UpdatedAt,
+	_, err := r.db.ExecContext(ctx, `
+		INSERT INTO articles (user_id, title, content, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?)`,
+		userId, article.Title, article.Content, article.CreatedAt, article.UpdatedAt,
 	)
 	if err != nil {
-		return messages.ErrInvalidArticleData
+		return fmt.Errorf("%w: %v", messages.ErrInvalidArticleData, err)
 	}
 	return nil
 }
@@ -92,23 +82,17 @@ func (r *ArticleRepository) UpdateArticle(ctx context.Context, id int, article *
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	result, err := r.db.ExecContext(
-		ctx,
-		`UPDATE articles
-		SET title = ?, content = ?, updated_at = ?
-		WHERE id = ?`,
-		article.Title,
-		article.Content,
-		article.UpdatedAt,
-		id,
+	result, err := r.db.ExecContext(ctx, `
+		UPDATE articles SET title = ?, content = ?, updated_at = ? WHERE id = ?`,
+		article.Title, article.Content, article.UpdatedAt, id,
 	)
 	if err != nil {
-		return messages.ErrFetchArticles
+		return fmt.Errorf("%w: %v", messages.ErrFetchArticles, err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return messages.ErrDatabaseOperation
+		return fmt.Errorf("%w: %v", messages.ErrDatabaseOperation, err)
 	}
 	if rowsAffected == 0 {
 		return messages.ErrArticleNotFound
@@ -120,19 +104,14 @@ func (r *ArticleRepository) DeleteArticle(ctx context.Context, id int) error {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	result, err := r.db.ExecContext(
-		ctx,
-		`DELETE FROM articles
-       	WHERE id = ?`,
-		id,
-	)
+	result, err := r.db.ExecContext(ctx, `DELETE FROM articles WHERE id = ?`, id)
 	if err != nil {
-		return messages.ErrFetchArticles
+		return fmt.Errorf("%w: %v", messages.ErrFetchArticles, err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return messages.ErrDatabaseOperation
+		return fmt.Errorf("%w: %v", messages.ErrDatabaseOperation, err)
 	}
 	if rowsAffected == 0 {
 		return messages.ErrArticleNotFound
@@ -145,32 +124,24 @@ func (r *ArticleRepository) LikeArticle(ctx context.Context, articleId int, user
 	defer cancel()
 
 	var exists bool
-	err := r.db.GetContext(
-		ctx,
-		&exists,
-		`SELECT EXISTS (
-            SELECT 1 FROM likes WHERE article_id = ? AND user_id = ?
-        )`,
-		articleId,
-		userId,
-	)
+	err := r.db.GetContext(ctx, &exists, `
+		SELECT EXISTS (
+			SELECT 1 FROM likes WHERE article_id = ? AND user_id = ?
+		)
+	`, articleId, userId)
 	if err != nil {
-		return messages.ErrDatabaseOperation
+		return fmt.Errorf("%w: %v", messages.ErrDatabaseOperation, err)
 	}
 	if exists {
 		return messages.ErrLikeExists
 	}
 
-	_, err = r.db.ExecContext(
-		ctx,
-		`INSERT INTO likes (article_id, user_id) 
-				VALUES (?, ?);`,
-		articleId,
-		userId,
+	_, err = r.db.ExecContext(ctx, `
+		INSERT INTO likes (article_id, user_id) VALUES (?, ?)`,
+		articleId, userId,
 	)
-
 	if err != nil {
-		return messages.ErrDatabaseOperation
+		return fmt.Errorf("%w: %v", messages.ErrDatabaseOperation, err)
 	}
 	return nil
 }
@@ -179,15 +150,12 @@ func (r *ArticleRepository) UnlikeArticle(ctx context.Context, articleId int, us
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	_, err := r.db.ExecContext(
-		ctx,
-		`DELETE FROM likes WHERE article_id = ? AND user_id = ?`,
-		articleId,
-		userId,
+	_, err := r.db.ExecContext(ctx, `
+		DELETE FROM likes WHERE article_id = ? AND user_id = ?`,
+		articleId, userId,
 	)
 	if err != nil {
-		return messages.ErrDatabaseOperation
+		return fmt.Errorf("%w: %v", messages.ErrDatabaseOperation, err)
 	}
-
 	return nil
 }
